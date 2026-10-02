@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pocket Tape Measure</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one column of big controls, tape-measure yellow for anything you press */
+:root {
+  --bg: #f3f2ee;
+  --surface: #ffffff;
+  --fg: #1c1b18;
+  --muted: #6b675d;
+  --line: #d9d6cc;
+  --tape: #f5c518;
+  --tape-ink: #1c1b18;
+  --mark: #e0342b;
+  --font-display: "Archivo Narrow", "Arial Narrow", sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #161613; --surface: #22211d; --fg: #f1efe8; --muted: #a5a092; --line: #3a3832;
+  --tape: #f5c518; --tape-ink: #1c1b18; --mark: #ff5a4e; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #161613; --surface: #22211d; --fg: #f1efe8; --muted: #a5a092; --line: #3a3832;
+  --tape: #f5c518; --tape-ink: #1c1b18; --mark: #ff5a4e; color-scheme: dark }
+
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.5; }
+.wrap { max-width: 640px; margin: 0 auto; padding: 20px 16px 40px; display: flex; flex-direction: column; gap: 20px; }
+
+.ruler { height: 34px; border-radius: 4px; background:
+  repeating-linear-gradient(90deg, var(--tape-ink) 0 1px, transparent 1px 10px) bottom/100% 9px no-repeat,
+  repeating-linear-gradient(90deg, var(--tape-ink) 0 2px, transparent 2px 50px) bottom/100% 18px no-repeat,
+  var(--tape); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: 2.4rem; line-height: 1.05; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: 1.4rem; margin: 0; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 16px; display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+button, .btn { font: 600 1rem var(--font-body); border: 2px solid var(--tape-ink); background: var(--tape); color: var(--tape-ink);
+  border-radius: 10px; padding: 12px 18px; min-height: 52px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; justify-content: center; }
+button.plain { background: var(--surface); color: var(--fg); border-color: var(--line); }
+button:disabled { opacity: .45; cursor: default; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--mark); outline-offset: 2px; }
+button svg { width: 22px; height: 22px; flex: none; }
+.big { font-size: 1.15rem; min-height: 60px; width: 100%; }
+
+.seg { display: inline-flex; border: 2px solid var(--tape-ink); border-radius: 10px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; min-height: 44px; padding: 8px 14px; background: var(--surface); color: var(--fg); }
+.seg button[aria-pressed="true"] { background: var(--tape); color: var(--tape-ink); }
+
+label.field { display: flex; flex-direction: column; gap: 4px; font-size: .9rem; color: var(--muted); }
+select, input[type=number] { font: 1rem var(--font-body); padding: 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); min-height: 46px; }
+
+.status { font-size: .95rem; padding: 10px 12px; border-radius: 8px; background: var(--bg); border: 1px dashed var(--line); }
+.status.bad { border-color: var(--mark); }
+
+/* photo mode */
+#photoStage { position: relative; touch-action: none; border-radius: 8px; overflow: hidden; background: #000; }
+#photoCanvas { display: block; width: 100%; height: auto; }
+.steps { display: flex; gap: 8px; flex-wrap: wrap; font-size: .9rem; }
+.steps span { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.steps span.on { background: var(--tape); color: var(--tape-ink); border-color: var(--tape-ink); font-weight: 600; }
+
+.list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.list li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 10px; border-radius: 8px; background: var(--bg); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* AR overlay (shown only while the camera view runs) */
+#ar { position: fixed; inset: 0; display: none; flex-direction: column; justify-content: space-between; pointer-events: none; color: #fff; font-family: var(--font-body); }
+#ar.on { display: flex; }
+#ar > * { pointer-events: auto; }
+.arTop { padding: calc(env(safe-area-inset-top, 0px) + 12px) 12px 12px; display: flex; flex-direction: column; gap: 8px; align-items: center; background: linear-gradient(rgba(0,0,0,.55), transparent); }
+.readout { font-family: var(--font-display); font-weight: 700; font-size: 2.6rem; line-height: 1; background: var(--tape); color: var(--tape-ink); padding: 8px 16px; border-radius: 10px; font-variant-numeric: tabular-nums; min-width: 6ch; text-align: center; }
+.hint { font-size: .95rem; text-shadow: 0 1px 3px #000; text-align: center; }
+.arBottom { padding: 12px 12px calc(env(safe-area-inset-bottom, 0px) + 16px); display: flex; flex-direction: column; gap: 10px; background: linear-gradient(transparent, rgba(0,0,0,.6)); }
+.arBottom .row { justify-content: center; }
+.arBottom button.plain { background: rgba(255,255,255,.92); color: #1c1b18; border-color: transparent; }
+.arBottom .seg { border-color: #fff; }
+.arBottom .seg button { background: rgba(255,255,255,.92); color: #1c1b18; }
+.arBottom .seg button[aria-pressed="true"] { background: var(--tape); }
+#addBtn { width: 84px; height: 84px; border-radius: 50%; font-size: 2.4rem; padding: 0; border-width: 4px; border-color: #fff; }
+.total { font-family: var(--font-mono); font-size: .95rem; text-align: center; text-shadow: 0 1px 3px #000; }
+@media (prefers-reduced-motion: no-preference) { button { transition: transform .08s; } button:active { transform: scale(.96); } }
+</style>
+</head>
+<body>
+
+<div class="wrap" id="home">
+  <div class="ruler" aria-hidden="true"></div>
+  <header style="display:flex;flex-direction:column;gap:8px">
+    <h1>Pocket Tape Measure</h1>
+    <p class="muted">Point the camera at a surface, tap to drop a point, move, tap again. Distances show in the room and in a list. Built for Chrome on the Galaxy S21 Ultra.</p>
+  </header>
+
+  <section class="card">
+    <h2>Units</h2>
+    <div class="seg" role="group" aria-label="Units">
+      <button id="uMetric" aria-pressed="true">cm / m</button>
+      <button id="uImperial" aria-pressed="false">in / ft</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Measure in the room</h2>
+    <p class="muted">Uses the camera and motion sensors (Google Play Services for AR). Works best on textured, well-lit surfaces. Expect about 1 cm of error over a metre.</p>
+    <button class="big" id="startAR">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V4h3M21 7V4h-3M3 17v3h3M21 17v3h-3"/><circle cx="12" cy="12" r="3"/></svg>
+      Start measuring
+    </button>
+    <div class="status" id="arStatus">Checking whether this browser can measure in the room…</div>
+  </section>
+
+  <section class="card">
+    <h2>Measure from a photo</h2>
+    <p class="muted">Works anywhere. Take a photo with something of known size in it, lying flat in the same plane as what you want to measure, and shoot straight on.</p>
+    <div class="row">
+      <label class="field" style="flex:1 1 200px">Known object in the photo
+        <select id="refType">
+          <option value="85.6">Bank card, long side (85.6 mm)</option>
+          <option value="53.98">Bank card, short side (54 mm)</option>
+          <option value="297">A4 paper, long side (297 mm)</option>
+          <option value="210">A4 paper, short side (210 mm)</option>
+          <option value="279.4">US Letter, long side (11 in)</option>
+          <option value="215.9">US Letter, short side (8.5 in)</option>
+          <option value="24.26">US quarter, across (24.26 mm)</option>
+          <option value="23.43">£1 coin, across (23.4 mm)</option>
+          <option value="23.25">€1 coin, across (23.25 mm)</option>
+          <option value="165.1">Galaxy S21 Ultra, height (165.1 mm)</option>
+          <option value="custom">Something else…</option>
+        </select>
+      </label>
+      <label class="field" id="customWrap" hidden style="flex:0 1 140px">Its length (mm)
+        <input type="number" id="customMM" min="1" step="0.1" value="100">
+      </label>
+    </div>
+    <label class="btn" for="photoIn" style="width:100%">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+      Take or choose a photo
+    </label>
+    <input type="file" id="photoIn" accept="image/*" capture="environment" hidden>
+
+    <div class="steps" aria-live="polite">
+      <span id="st1" class="on">1 · Mark both ends of the known object</span>
+      <span id="st2">2 · Mark what you want to measure</span>
+    </div>
+    <div id="photoStage"><canvas id="photoCanvas" width="800" height="500" aria-label="Photo with measurement marks"></canvas></div>
+    <p class="muted" style="font-size:.9rem">Tap to place points. Drag a point to fine-tune it.</p>
+    <div class="row">
+      <button class="plain" id="pUndo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>Undo</button>
+      <button class="plain" id="pRedoRef">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 8v8M21 8v8"/></svg>Re-mark known object</button>
+      <button class="plain" id="pClear">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Clear measurements</button>
+    </div>
+    <ul class="list" id="photoList"></ul>
+  </section>
+</div>
+
+<!-- Overlay drawn over the live camera -->
+<div id="ar">
+  <div class="arTop">
+    <div class="readout" id="readout">—</div>
+    <div class="hint" id="hint">Move the phone slowly to find a surface</div>
+  </div>
+  <div class="arBottom">
+    <div class="total" id="arTotal"></div>
+    <div class="row">
+      <div class="seg" role="group" aria-label="How points join">
+        <button id="mPairs" aria-pressed="true">Separate lines</button>
+        <button id="mChain" aria-pressed="false">Joined path</button>
+      </div>
+    </div>
+    <div class="row" style="align-items:center">
+      <button class="plain" id="arUndo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>Undo</button>
+      <button id="addBtn" aria-label="Drop a point">+</button>
+      <button class="plain" id="arClear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Clear</button>
+    </div>
+    <div class="row">
+      <button class="plain" id="arExit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg>Done</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+  // ---------- units ----------
+  let imperial = false;
+  try { imperial = localStorage.getItem('units') === 'imp'; } catch (e) {}
+  function fmt(m) {
+    if (!isFinite(m)) return '—';
+    if (imperial) {
+      const inches = m / 0.0254;
+      if (inches < 24) return inches.toFixed(inches < 10 ? 2 : 1) + ' in';
+      const ft = Math.floor(inches / 12), rem = inches - ft * 12;
+      return ft + ' ft ' + rem.toFixed(1) + ' in';
+    }
+    if (m < 1) return (m * 100).toFixed(1) + ' cm';
+    return m.toFixed(2) + ' m';
+  }
+  const uM = document.getElementById('uMetric'), uI = document.getElementById('uImperial');
+  function setUnits(imp) {
+    imperial = imp;
+    uM.setAttribute('aria-pressed', !imp); uI.setAttribute('aria-pressed', imp);
+    try { localStorage.setItem('units', imp ? 'imp' : 'met'); } catch (e) {}
+    refreshLabels(); drawPhoto();
+  }
+  uM.onclick = () => setUnits(false); uI.onclick = () => setUnits(true);
+
+  // ---------- AR mode (WebXR hit-test) ----------
+  const statusEl = document.getElementById('arStatus');
+  const startBtn = document.getElementById('startAR');
+  const overlay = document.getElementById('ar');
+  const readout = document.getElementById('readout');
+  const hint = document.getElementById('hint');
+  const totalEl = document.getElementById('arTotal');
+
+  let renderer, scene, camera, session, refSpace, hitSource, reticle;
+  let hitPos = null, pending = null, chain = false;
+  const items = []; // {kind:'dot'|'seg', obj, label?, a?, b?}
+  let previewLine, previewLabel;
+
+  function setStatus(msg, bad) { statusEl.textContent = msg; statusEl.classList.toggle('bad', !!bad); }
+
+  async function checkAR() {
+    startBtn.disabled = true;
+    if (!window.isSecureContext) return setStatus('This page needs to be opened over https to use the camera.', true);
+    if (!navigator.xr) return setStatus('This browser cannot measure in the room. Open the page in Chrome on the phone, or use photo measuring below.', true);
+    try {
+      const ok = await navigator.xr.isSessionSupported('immersive-ar');
+      if (!ok) return setStatus('Room measuring is not available here. If you opened this inside another app, open the link in Chrome instead, and make sure "Google Play Services for AR" is installed. Photo measuring below works either way.', true);
+      startBtn.disabled = false;
+      setStatus('Ready. Your phone supports room measuring.');
+    } catch (e) {
+      setStatus('Room measuring is blocked on this page (' + e.message + '). Open the link directly in Chrome, or use photo measuring below.', true);
+    }
+  }
+
+  function makeLabel() {
+    const c = document.createElement('canvas'); c.width = 512; c.height = 160;
+    const tex = new THREE.CanvasTexture(c);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
+    sp.renderOrder = 10; sp.scale.set(0.12, 0.0375, 1);
+    sp.userData.canvas = c; sp.userData.tex = tex;
+    return sp;
+  }
+  function paintLabel(sp, text) {
+    const c = sp.userData.canvas, g = c.getContext('2d');
+    g.clearRect(0, 0, c.width, c.height);
+    g.font = '700 84px "Archivo Narrow", "Arial Narrow", sans-serif';
+    const w = Math.min(c.width - 8, g.measureText(text).width + 60);
+    const x = (c.width - w) / 2;
+    g.fillStyle = '#f5c518'; g.strokeStyle = '#1c1b18'; g.lineWidth = 6;
+    g.beginPath(); g.roundRect ? g.roundRect(x, 20, w, 120, 24) : g.rect(x, 20, w, 120); g.fill(); g.stroke();
+    g.fillStyle = '#1c1b18'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(text, c.width / 2, 84);
+    sp.userData.tex.needsUpdate = true; sp.userData.text = text;
+  }
+  const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false });
+  const dotMat = new THREE.MeshBasicMaterial({ color: 0xf5c518, depthTest: false });
+  const cylGeo = new THREE.CylinderGeometry(0.0025, 0.0025, 1, 8);
+  const up = new THREE.Vector3(0, 1, 0);
+  function placeLine(mesh, a, b) {
+    const d = new THREE.Vector3().subVectors(b, a), len = d.length();
+    mesh.position.copy(a).addScaledVector(d, 0.5);
+    mesh.scale.set(1, Math.max(len, 1e-4), 1);
+    if (len > 1e-6) mesh.quaternion.setFromUnitVectors(up, d.normalize());
+  }
+
+  function initThree() {
+    if (renderer) return;
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.xr.enabled = true;
+    renderer.domElement.style.display = 'none';
+    document.body.appendChild(renderer.domElement);
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 40);
+
+    const ring = new THREE.RingGeometry(0.03, 0.04, 40).rotateX(-Math.PI / 2);
+    reticle = new THREE.Mesh(ring, new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    const center = new THREE.Mesh(new THREE.CircleGeometry(0.005, 16).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xf5c518 }));
+    reticle.add(center);
+    reticle.matrixAutoUpdate = false; reticle.visible = false;
+    scene.add(reticle);
+
+    previewLine = new THREE.Mesh(cylGeo, new THREE.MeshBasicMaterial({ color: 0xf5c518, depthTest: false }));
+    previewLine.renderOrder = 5; previewLine.visible = false; scene.add(previewLine);
+    previewLabel = makeLabel(); previewLabel.visible = false; scene.add(previewLabel);
+  }
+
+  async function startAR() {
+    initThree();
+    try {
+      session = await navigator.xr.requestSession('immersive-ar', {
+        requiredFeatures: ['hit-test', 'local'],
+        optionalFeatures: ['dom-overlay'],
+        domOverlay: { root: overlay }
+      });
+    } catch (e) { setStatus('Could not start the camera: ' + e.message, true); return; }
+
+    overlay.classList.add('on');
+    renderer.xr.setReferenceSpaceType('local');
+    await renderer.xr.setSession(session);
+    refSpace = await session.requestReferenceSpace('local');
+    const viewer = await session.requestReferenceSpace('viewer');
+    hitSource = await session.requestHitTestSource({ space: viewer });
+    session.addEventListener('select', addPoint);
+    session.addEventListener('end', () => {
+      overlay.classList.remove('on'); hitSource = null; session = null; renderer.setAnimationLoop(null);
+    });
+    renderer.setAnimationLoop(onFrame);
+  }
+
+  const tmpM = new THREE.Matrix4();
+  function onFrame(t, frame) {
+    if (frame && hitSource) {
+      const res = frame.getHitTestResults(hitSource);
+      if (res.length) {
+        const pose = res[0].getPose(refSpace);
+        reticle.visible = true;
+        reticle.matrix.fromArray(pose.transform.matrix);
+        hitPos = new THREE.Vector3().setFromMatrixPosition(tmpM.fromArray(pose.transform.matrix));
+        hint.textContent = pending ? 'Move to the end point and tap +' : 'Aim the circle at the start point and tap +';
+      } else {
+        reticle.visible = false; hitPos = null;
+        hint.textContent = 'Move the phone slowly to find a surface';
+      }
+    }
+    if (pending && hitPos) {
+      previewLine.visible = previewLabel.visible = true;
+      placeLine(previewLine, pending, hitPos);
+      const d = pending.distanceTo(hitPos), txt = fmt(d);
+      readout.textContent = txt;
+      if (previewLabel.userData.text !== txt) paintLabel(previewLabel, txt);
+      previewLabel.position.copy(pending).lerp(hitPos, 0.5).add(new THREE.Vector3(0, 0.03, 0));
+      scaleLabel(previewLabel);
+    } else {
+      previewLine.visible = previewLabel.visible = false;
+      if (!pending) readout.textContent = lastLen != null ? fmt(lastLen) : '—';
+    }
+    for (const it of items) if (it.label) scaleLabel(it.label);
+    renderer.render(scene, camera);
+  }
+  const camPos = new THREE.Vector3();
+  function scaleLabel(sp) {
+    // keep labels readable whatever the distance
+    renderer.xr.getCamera(camera).getWorldPosition(camPos);
+    const k = Math.max(0.6, camPos.distanceTo(sp.position) / 0.6);
+    sp.scale.set(0.12 * k, 0.0375 * k, 1);
+  }
+
+  let lastLen = null;
+  function addPoint(ev) {
+    if (!hitPos) { hint.textContent = 'No surface under the circle yet. Move the phone slowly.'; return; }
+    const p = hitPos.clone();
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.007, 16, 12), dotMat);
+    dot.position.copy(p); dot.renderOrder = 6; scene.add(dot);
+    items.push({ kind: 'dot', obj: dot, wasPending: pending ? pending.clone() : null });
+    if (pending) {
+      const line = new THREE.Mesh(cylGeo, lineMat); line.renderOrder = 5;
+      placeLine(line, pending, p); scene.add(line);
+      const label = makeLabel(); scene.add(label);
+      const d = pending.distanceTo(p);
+      paintLabel(label, fmt(d));
+      label.position.copy(pending).lerp(p, 0.5).add(new THREE.Vector3(0, 0.03, 0));
+      items.push({ kind: 'seg', obj: line, label, a: pending.clone(), b: p.clone() });
+      lastLen = d;
+      pending = chain ? p : null;
+    } else {
+      pending = p;
+    }
+    if (navigator.vibrate) navigator.vibrate(15);
+    updateTotal();
+  }
+  function undo() {
+    const it = items.pop(); if (!it) return;
+    if (it.kind === 'seg') {
+      scene.remove(it.obj); scene.remove(it.label);
+      const dot = items.pop(); if (dot) { scene.remove(dot.obj); pending = dot.wasPending; }
+      const segs = items.filter(i => i.kind === 'seg'); lastLen = segs.length ? segs[segs.length - 1].a.distanceTo(segs[segs.length - 1].b) : null;
+    } else { scene.remove(it.obj); pending = it.wasPending; }
+    updateTotal();
+  }
+  function clearAll() {
+    while (items.length) { const it = items.pop(); scene.remove(it.obj); if (it.label) scene.remove(it.label); }
+    pending = null; lastLen = null; updateTotal();
+  }
+  function updateTotal() {
+    const segs = items.filter(i => i.kind === 'seg');
+    if (segs.length < 2) { totalEl.textContent = ''; return; }
+    const sum = segs.reduce((s, i) => s + i.a.distanceTo(i.b), 0);
+    totalEl.textContent = segs.length + ' lines · total ' + fmt(sum);
+  }
+  function refreshLabels() {
+    for (const it of items) if (it.label) paintLabel(it.label, fmt(it.a.distanceTo(it.b)));
+    if (previewLabel) previewLabel.userData.text = null;
+    if (renderer) updateTotal();
+  }
+
+  // Buttons in the overlay must not also count as a tap on the scene
+  overlay.querySelectorAll('button').forEach(b => b.addEventListener('beforexrselect', e => e.preventDefault()));
+  document.getElementById('addBtn').onclick = addPoint;
+  document.getElementById('arUndo').onclick = undo;
+  document.getElementById('arClear').onclick = clearAll;
+  document.getElementById('arExit').onclick = () => session && session.end();
+  const mP = document.getElementById('mPairs'), mC = document.getElementById('mChain');
+  mP.onclick = () => { chain = false; mP.setAttribute('aria-pressed', true); mC.setAttribute('aria-pressed', false); };
+  mC.onclick = () => { chain = true; mC.setAttribute('aria-pressed', true); mP.setAttribute('aria-pressed', false); };
+  startBtn.onclick = startAR;
+  checkAR();
+
+  // ---------- Photo mode ----------
+  const cv = document.getElementById('photoCanvas'), g = cv.getContext('2d');
+  const refSel = document.getElementById('refType'), customWrap = document.getElementById('customWrap'), customMM = document.getElementById('customMM');
+  const st1 = document.getElementById('st1'), st2 = document.getElementById('st2'), list = document.getElementById('photoList');
+  let img = null;
+  let ref = [];        // up to 2 points, image pixels
+  let pts = [];        // measurement points, pairs
+  let drag = null;
+
+  function refMM() {
+    if (refSel.value === 'custom') return parseFloat(customMM.value) || 0;
+    return parseFloat(refSel.value);
+  }
+  refSel.onchange = () => { customWrap.hidden = refSel.value !== 'custom'; drawPhoto(); };
+  customMM.oninput = drawPhoto;
+
+  document.getElementById('photoIn').onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const im = new Image();
+    im.onload = () => { img = im; cv.width = im.naturalWidth; cv.height = im.naturalHeight; ref = []; pts = []; drawPhoto(); };
+    im.src = URL.createObjectURL(f);
+  };
+
+  function mmPerPx() {
+    if (ref.length < 2) return null;
+    const px = Math.hypot(ref[1].x - ref[0].x, ref[1].y - ref[0].y);
+    return px > 0 ? refMM() / px : null;
+  }
+
+  function drawSample() {
+    // example view before a photo is chosen
+    cv.width = 800; cv.height = 500;
+    const grd = g.createLinearGradient(0, 0, 0, 500); grd.addColorStop(0, '#8a7558'); grd.addColorStop(1, '#6d5b43');
+    g.fillStyle = grd; g.fillRect(0, 0, 800, 500);
+    g.fillStyle = '#e9e4d8'; g.fillRect(380, 90, 340, 300);
+    g.fillStyle = '#2b5d8f'; g.beginPath(); g.roundRect ? g.roundRect(90, 300, 214, 135, 12) : g.rect(90, 300, 214, 135); g.fill();
+    g.fillStyle = '#d8b44a'; g.fillRect(115, 345, 40, 30);
+    g.fillStyle = 'rgba(255,255,255,.85)'; g.font = '600 22px "IBM Plex Sans", sans-serif';
+    g.fillText('Example: bank card next to a book', 24, 40);
+    const s = { ref: [{ x: 90, y: 292 }, { x: 304, y: 292 }], pts: [{ x: 380, y: 410 }, { x: 720, y: 410 }] };
+    drawMarks(s.ref, s.pts, 85.6 / 214, 2);
+  }
+
+  function drawMarks(r, p, scale, sz) {
+    const lw = sz * 2;
+    function seg(a, b, col, text) {
+      g.strokeStyle = col; g.lineWidth = lw * 1.5; g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
+      if (text) {
+        const fs = 16 * sz; g.font = '700 ' + fs + 'px "Archivo Narrow", sans-serif';
+        const w = g.measureText(text).width + fs, mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 - fs * 1.1;
+        g.fillStyle = '#f5c518'; g.fillRect(mx - w / 2, my - fs * 0.7, w, fs * 1.4);
+        g.strokeStyle = '#1c1b18'; g.lineWidth = sz; g.strokeRect(mx - w / 2, my - fs * 0.7, w, fs * 1.4);
+        g.fillStyle = '#1c1b18'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, mx, my); g.textAlign = 'start'; g.textBaseline = 'alphabetic';
+      }
+    }
+    function dot(q, col) { g.fillStyle = col; g.strokeStyle = '#fff'; g.lineWidth = sz * 1.5; g.beginPath(); g.arc(q.x, q.y, 7 * sz, 0, 7); g.fill(); g.stroke(); }
+    if (r.length === 2) seg(r[0], r[1], '#e0342b', 'known');
+    r.forEach(q => dot(q, '#e0342b'));
+    for (let i = 0; i + 1 < p.length; i += 2) {
+      const mm = scale ? Math.hypot(p[i + 1].x - p[i].x, p[i + 1].y - p[i].y) * scale : null;
+      seg(p[i], p[i + 1], '#f5c518', mm ? fmt(mm / 1000) : '');
+    }
+    p.forEach(q => dot(q, '#f5c518'));
+  }
+
+  function drawPhoto() {
+    if (!img) { drawSample(); list.innerHTML = '<li><span>Example line</span><span>' + fmt(0.136) + '</span></li>'; return; }
+    g.drawImage(img, 0, 0);
+    const sz = Math.max(1, cv.width / 700);
+    const scale = mmPerPx();
+    drawMarks(ref, pts, scale, sz);
+    st1.classList.toggle('on', ref.length < 2); st2.classList.toggle('on', ref.length === 2);
+    list.innerHTML = '';
+    for (let i = 0; i + 1 < pts.length; i += 2) {
+      const mm = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y) * scale;
+      const li = document.createElement('li');
+      li.innerHTML = '<span>Line ' + (i / 2 + 1) + '</span><span>' + fmt(mm / 1000) + '</span>';
+      list.appendChild(li);
+    }
+  }
+
+  function toImg(e) {
+    const r = cv.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * cv.width / r.width, y: (e.clientY - r.top) * cv.height / r.height, k: cv.width / r.width };
+  }
+  cv.addEventListener('pointerdown', e => {
+    if (!img) return;
+    const p = toImg(e), hitR = 28 * p.k;
+    const all = [...ref.map((q, i) => ({ arr: ref, i, q })), ...pts.map((q, i) => ({ arr: pts, i, q }))];
+    const near = all.find(o => Math.hypot(o.q.x - p.x, o.q.y - p.y) < hitR);
+    if (near) { drag = near; cv.setPointerCapture(e.pointerId); return; }
+    if (ref.length < 2) ref.push({ x: p.x, y: p.y }); else pts.push({ x: p.x, y: p.y });
+    drawPhoto();
+  });
+  cv.addEventListener('pointermove', e => {
+    if (!drag) return; const p = toImg(e);
+    drag.arr[drag.i] = { x: p.x, y: p.y }; drawPhoto();
+  });
+  cv.addEventListener('pointerup', () => { drag = null; });
+  document.getElementById('pUndo').onclick = () => { if (pts.length) pts.pop(); else ref.pop(); drawPhoto(); };
+  document.getElementById('pRedoRef').onclick = () => { ref = []; drawPhoto(); };
+  document.getElementById('pClear').onclick = () => { pts = []; drawPhoto(); };
+
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawPhoto);
+  setUnits(imperial);
+})();
+</script>
+</body>
+</html>
