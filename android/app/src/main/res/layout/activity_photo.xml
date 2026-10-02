@@ -127,12 +127,39 @@
             android:text="Clear" />
     </LinearLayout>
 
-    <Button
-        android:id="@+id/photoUnits"
-        style="@style/Measure.Button.Plain"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:drawableStart="@drawable/ic_ruler"
-        android:text="Units: cm" />
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/photoUnits"
+            style="@style/Measure.Button.Plain"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:drawableStart="@drawable/ic_ruler"
+            android:text="Units: cm" />
+
+        <Button
+            android:id="@+id/photoSave"
+            style="@style/Measure.Button.Plain"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:layout_marginEnd="6dp"
+            android:drawableStart="@drawable/ic_save"
+            android:text="Save" />
+
+        <Button
+            android:id="@+id/photoShare"
+            style="@style/Measure.Button.Plain"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:drawableStart="@drawable/ic_share"
+            android:text="Share" />
+    </LinearLayout>
 </LinearLayout>

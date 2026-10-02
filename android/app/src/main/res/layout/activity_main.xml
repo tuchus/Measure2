@@ -32,7 +32,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="Point the camera at a surface, drop a point, move, drop another. Or measure from a photo with something of known size in it." />
+            android:text="Measure lengths, shapes, areas and angles with the camera, measure from a photo, or check level." />
 
         <TextView
             style="@style/Measure.Heading"
@@ -120,5 +120,41 @@
             android:layout_marginTop="12dp"
             android:drawableStart="@drawable/ic_camera"
             android:text="Measure from a photo" />
+
+        <TextView
+            style="@style/Measure.Heading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="More" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/levelButton"
+                style="@style/Measure.Button.Plain"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:minHeight="64dp"
+                android:drawableStart="@drawable/ic_level"
+                android:text="Spirit level" />
+
+            <Button
+                android:id="@+id/historyButton"
+                style="@style/Measure.Button.Plain"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:minHeight="64dp"
+                android:drawableStart="@drawable/ic_gallery"
+                android:text="Saved photos" />
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>

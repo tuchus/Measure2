@@ -107,6 +107,19 @@ class PhotoMeasureView(context: Context, attrs: AttributeSet?) : View(context, a
         }
     }
 
+    /** The photo as shown on screen with its marks, cropped to the photo. */
+    fun render(): Bitmap? {
+        val b = bitmap ?: return null
+        val shown = RectF(0f, 0f, b.width.toFloat(), b.height.toFloat())
+        toScreen.mapRect(shown)
+        val out = Bitmap.createBitmap(shown.width().toInt().coerceAtLeast(1), shown.height().toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+        val c = Canvas(out)
+        c.translate(-shown.left, -shown.top)
+        c.drawBitmap(b, toScreen, photoPaint)
+        drawMarks(c)
+        return out
+    }
+
     private fun changed() { invalidate(); onChange?.invoke() }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) { fit() }

@@ -76,6 +76,8 @@ class PhotoActivity : Activity() {
             measure.imperial = imperial
             refresh()
         }
+        findViewById<Button>(R.id.photoSave).setOnClickListener { saveMarked()?.let { toast("Saved to Pictures/Measure") } }
+        findViewById<Button>(R.id.photoShare).setOnClickListener { saveMarked()?.let { Gallery.share(this, it) } }
         measure.onChange = { refresh() }
         applyRef()
     }
@@ -151,6 +153,28 @@ class PhotoActivity : Activity() {
         val lengths = measure.lengthsMetres()
         results.text = if (lengths.isEmpty()) "" else
             lengths.mapIndexed { i, m -> "Line ${i + 1}:  ${Units.format(m, imperial)}" }.joinToString("\n")
+    }
+
+    /** Saves the photo with its marks and a list of the lengths along the bottom. */
+    private fun saveMarked(): Uri? {
+        val image = measure.render()
+        if (image == null) { toast("Take or choose a photo first."); return null }
+        val lines = measure.lengthsMetres().mapIndexed { i, m -> "Line ${i + 1}: ${Units.format(m, imperial)}" }
+        val canvas = android.graphics.Canvas(image)
+        val size = image.width / 24f
+        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFFFFFFF.toInt(); textSize = size; isFakeBoldText = true
+        }
+        if (lines.isNotEmpty()) {
+            val pad = size * 0.7f
+            val band = pad * 2 + size * 1.35f * lines.size
+            canvas.drawRect(0f, image.height - band, image.width.toFloat(), image.height.toFloat(),
+                android.graphics.Paint().apply { color = 0xE61C1B18.toInt() })
+            lines.forEachIndexed { i, s -> canvas.drawText(s, pad, image.height - band + pad + size * (1.35f * i + 1f), paint) }
+        }
+        val uri = Gallery.save(this, image)
+        if (uri == null) toast("Couldn't save the photo.")
+        return uri
     }
 
     private fun toast(text: String) = Toast.makeText(this, text, Toast.LENGTH_LONG).show()

@@ -37,6 +37,15 @@
             android:exported="false"
             android:screenOrientation="portrait" />
 
+        <activity
+            android:name=".LevelActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".HistoryActivity"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.files"

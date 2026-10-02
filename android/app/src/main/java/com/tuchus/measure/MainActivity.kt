@@ -30,6 +30,12 @@ class MainActivity : Activity() {
         findViewById<Button>(R.id.photoButton).setOnClickListener {
             startActivity(Intent(this, PhotoActivity::class.java))
         }
+        findViewById<Button>(R.id.levelButton).setOnClickListener {
+            startActivity(Intent(this, LevelActivity::class.java))
+        }
+        findViewById<Button>(R.id.historyButton).setOnClickListener {
+            startActivity(Intent(this, HistoryActivity::class.java))
+        }
     }
 
     override fun onResume() {
