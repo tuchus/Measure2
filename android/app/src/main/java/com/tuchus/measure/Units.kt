@@ -43,6 +43,22 @@ object Units {
         else String.format(Locale.US, "%.2f m²", m2)
     }
 
+    /** Formats a volume given in cubic metres. */
+    fun formatVolume(m3: Float, imperial: Boolean): String {
+        if (imperial) return String.format(Locale.US, "%.2f cu ft", m3 / 0.0283168f)
+        return String.format(Locale.US, "%.2f m³ (%.0f litres)", m3, m3 * 1000f)
+    }
+
+    /** A length shown in an edit box: centimetres or inches, no unit name. */
+    fun toField(metres: Float, imperial: Boolean): String =
+        String.format(Locale.US, "%.1f", if (imperial) metres / 0.0254f else metres * 100f).removeSuffix(".0")
+
+    fun fromField(text: String, imperial: Boolean): Float? {
+        val v = text.trim().toFloatOrNull() ?: return null
+        if (v <= 0f) return null
+        return if (imperial) v * 0.0254f else v / 100f
+    }
+
     fun distance(a: FloatArray, b: FloatArray): Float {
         val dx = a[0] - b[0]; val dy = a[1] - b[1]; val dz = a[2] - b[2]
         return sqrt(dx * dx + dy * dy + dz * dz)

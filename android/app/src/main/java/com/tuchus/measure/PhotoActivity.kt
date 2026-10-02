@@ -28,6 +28,7 @@ class PhotoActivity : Activity() {
     private lateinit var measure: PhotoMeasureView
     private lateinit var refType: Spinner
     private lateinit var customMm: EditText
+    private lateinit var customMm2: EditText
     private lateinit var step: TextView
     private lateinit var results: TextView
     private lateinit var unitsButton: Button
@@ -40,6 +41,7 @@ class PhotoActivity : Activity() {
         measure = findViewById(R.id.measure)
         refType = findViewById(R.id.refType)
         customMm = findViewById(R.id.customMm)
+        customMm2 = findViewById(R.id.customMm2)
         step = findViewById(R.id.step)
         results = findViewById(R.id.results)
         unitsButton = findViewById(R.id.photoUnits)
@@ -51,16 +53,20 @@ class PhotoActivity : Activity() {
         refType.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, Refs.all.map { it.label })
         refType.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, v: View?, position: Int, id: Long) {
-                customMm.visibility = if (Refs.all[position].mm <= 0f) View.VISIBLE else View.GONE
+                val r = Refs.all[position]
+                customMm.visibility = if (r.mm <= 0f) View.VISIBLE else View.GONE
+                customMm2.visibility = if (r.mm <= 0f && r.corners) View.VISIBLE else View.GONE
                 applyRef()
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
-        customMm.addTextChangedListener(object : TextWatcher {
+        val watcher = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
             override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
             override fun afterTextChanged(s: Editable?) = applyRef()
-        })
+        }
+        customMm.addTextChangedListener(watcher)
+        customMm2.addTextChangedListener(watcher)
 
         findViewById<Button>(R.id.takePhoto).setOnClickListener { takePhoto() }
         findViewById<Button>(R.id.choosePhoto).setOnClickListener {
@@ -139,7 +145,9 @@ class PhotoActivity : Activity() {
 
     private fun applyRef() {
         val ref = Refs.all[refType.selectedItemPosition.coerceAtLeast(0)]
+        measure.refCorners = ref.corners
         measure.refMm = if (ref.mm > 0f) ref.mm else customMm.text.toString().toFloatOrNull() ?: 0f
+        measure.refMm2 = if (ref.mm > 0f) ref.mm2 else customMm2.text.toString().toFloatOrNull() ?: 0f
         refresh()
     }
 
@@ -147,7 +155,9 @@ class PhotoActivity : Activity() {
         unitsButton.text = "Units: ${Units.shortName(imperial)}"
         step.text = when {
             !measure.hasImage -> "Take or choose a photo to start."
-            measure.ref.size < 2 -> "Step 1 of 2: tap both ends of the known object (red)."
+            measure.ref.size < measure.refNeeded && measure.refCorners ->
+                "Step 1 of 2: tap the 4 corners of the known object, going round it (red). ${measure.ref.size} of 4 done."
+            measure.ref.size < measure.refNeeded -> "Step 1 of 2: tap both ends of the known object (red)."
             else -> "Step 2 of 2: tap two points to measure (yellow). Drag any point to adjust it."
         }
         val lengths = measure.lengthsMetres()

@@ -27,6 +27,9 @@ class MeasureOverlay(context: Context, attrs: AttributeSet?) : View(context, att
         val target: FloatArray?,
         val snapIndex: Int,
         val guide: ArMeasureActivity.Guide,
+        val box: List<FloatArray>?,
+        val boxSize: FloatArray,
+        val loupe: RectF,
     )
 
     @Volatile var snapshot: Snapshot? = null
@@ -66,6 +69,16 @@ class MeasureOverlay(context: Context, attrs: AttributeSet?) : View(context, att
     }
     private val footerBg = Paint().apply { color = 0xE61C1B18.toInt() }
     private val footerText = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt(); isFakeBoldText = true }
+    private val boxFace = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x3329B6F6 }
+    private val boxEdge = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 3 * dp; color = 0xFF29B6F6.toInt(); strokeCap = Paint.Cap.ROUND
+    }
+    private val loupeEdge = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 3 * dp; color = 0xFFFFFFFF.toInt()
+    }
+    private val loupeCross = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.5f * dp; color = tape
+    }
     private val rect = RectF()
     private val poly = Path()
     private val v4 = FloatArray(4)
@@ -107,6 +120,7 @@ class MeasureOverlay(context: Context, attrs: AttributeSet?) : View(context, att
                     Units.distance(s.points[s.pending], s.target), preview, if (guided) guideGreen else tape)
             }
             drawAngles(canvas, s, eye)
+            s.box?.let { drawBox(canvas, s, it) }
             for ((i, v) in eye.withIndex()) {
                 if (v[2] >= NEAR) continue
                 val p = project(s, v)
@@ -115,10 +129,60 @@ class MeasureOverlay(context: Context, attrs: AttributeSet?) : View(context, att
                 canvas.drawCircle(p.x, p.y, r, dotRing)
             }
         }
+        if (withReticle && s.tracking) drawLoupeFrame(canvas, s.loupe)
         if (withReticle) {
             val snapped = s.tracking && s.snapIndex >= 0 && s.snapIndex < s.points.size
             val at = if (snapped) toEye(s, s.points[s.snapIndex]).takeIf { it[2] < NEAR }?.let { project(s, it) } else null
             drawReticle(canvas, s.tracking && s.target != null, at)
+        }
+    }
+
+    private fun drawLoupeFrame(c: Canvas, r: RectF) {
+        // The camera image inside is drawn by OpenGL; this adds the frame and cross-hair
+        c.drawRoundRect(r, 6 * dp, 6 * dp, ringShadow)
+        c.drawRoundRect(r, 6 * dp, 6 * dp, loupeEdge)
+        val cx = r.centerX(); val cy = r.centerY(); val gap = 6 * dp
+        c.drawLine(r.left, cy, cx - gap, cy, loupeCross)
+        c.drawLine(cx + gap, cy, r.right, cy, loupeCross)
+        c.drawLine(cx, r.top, cx, cy - gap, loupeCross)
+        c.drawLine(cx, cy + gap, cx, r.bottom, loupeCross)
+    }
+
+    private fun drawBox(c: Canvas, s: Snapshot, corners: List<FloatArray>) {
+        val eye = corners.map { toEye(s, it) }
+        // Faces first, see-through, only when the whole box is in front of the camera
+        if (eye.all { it[2] < NEAR }) {
+            val p = eye.map { project(s, it) }
+            for (face in FACES) {
+                poly.reset()
+                poly.moveTo(p[face[0]].x, p[face[0]].y)
+                for (k in 1 until 4) poly.lineTo(p[face[k]].x, p[face[k]].y)
+                poly.close()
+                c.drawPath(poly, boxFace)
+            }
+        }
+        for (e in EDGES) {
+            val a = eye[e[0]]; val b = eye[e[1]]
+            val aFront = a[2] < NEAR; val bFront = b[2] < NEAR
+            if (!aFront && !bFront) continue
+            var p = a; var q = b
+            if (!aFront || !bFront) {
+                val t = (NEAR - a[2]) / (b[2] - a[2])
+                val cut = floatArrayOf(a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1]), NEAR)
+                if (aFront) q = cut else p = cut
+            }
+            val pa = project(s, p); val pb = project(s, q)
+            c.drawLine(pa.x, pa.y, pb.x, pb.y, boxEdge)
+        }
+        // Size labels on the bottom edges and one upright edge
+        val labels = listOf(
+            intArrayOf(0, 1) to s.boxSize[0], intArrayOf(0, 2) to s.boxSize[1], intArrayOf(0, 4) to s.boxSize[2],
+        )
+        for ((e, metres) in labels) {
+            val a = eye[e[0]]; val b = eye[e[1]]
+            if (a[2] >= NEAR || b[2] >= NEAR) continue
+            val pa = project(s, a); val pb = project(s, b)
+            drawLabel(c, (pa.x + pb.x) / 2f, (pa.y + pb.y) / 2f, Units.format(metres, imperial), 0xFF29B6F6.toInt(), ink, 16f)
         }
     }
 
@@ -226,5 +290,16 @@ class MeasureOverlay(context: Context, attrs: AttributeSet?) : View(context, att
     companion object {
         /** In camera space, things in front of the camera have z below this. */
         private const val NEAR = -0.03f
+
+        /** Box corners are numbered by bits: 1 = width side, 2 = depth side, 4 = top. */
+        private val EDGES = listOf(
+            intArrayOf(0, 1), intArrayOf(2, 3), intArrayOf(4, 5), intArrayOf(6, 7),
+            intArrayOf(0, 2), intArrayOf(1, 3), intArrayOf(4, 6), intArrayOf(5, 7),
+            intArrayOf(0, 4), intArrayOf(1, 5), intArrayOf(2, 6), intArrayOf(3, 7),
+        )
+        private val FACES = listOf(
+            intArrayOf(0, 1, 3, 2), intArrayOf(4, 5, 7, 6), intArrayOf(0, 1, 5, 4),
+            intArrayOf(2, 3, 7, 6), intArrayOf(0, 2, 6, 4), intArrayOf(1, 3, 7, 5),
+        )
     }
 }

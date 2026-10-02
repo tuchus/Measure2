@@ -21,6 +21,16 @@ class PhotoMeasureView(context: Context, attrs: AttributeSet?) : View(context, a
         set(v) { field = v; invalidate() }
     var refMm = 85.6f
         set(v) { field = v; invalidate() }
+    var refMm2 = 53.98f
+        set(v) { field = v; invalidate() }
+    /** True when the known object is marked by its four corners rather than one length. */
+    var refCorners = false
+        set(v) {
+            field = v
+            while (ref.size > refNeeded) ref.removeAt(ref.size - 1)
+            invalidate()
+        }
+    val refNeeded get() = if (refCorners) 4 else 2
 
     val ref = ArrayList<PointF>()
     val pts = ArrayList<PointF>()
@@ -92,6 +102,25 @@ class PhotoMeasureView(context: Context, attrs: AttributeSet?) : View(context, a
     fun clearRef() { ref.clear(); changed() }
     fun clearLines() { pts.clear(); changed() }
 
+    /** Maps photo pixels to millimetres on the surface, using the four corners. */
+    private fun surfaceMap(): Homography? {
+        if (!refCorners || ref.size < 4 || refMm <= 0f || refMm2 <= 0f) return null
+        // The pair of opposite sides that looks longer in the photo is the long side
+        fun len(i: Int, j: Int) = hypot(ref[j].x - ref[i].x, ref[j].y - ref[i].y)
+        val firstLong = len(0, 1) + len(2, 3) >= len(1, 2) + len(3, 0)
+        val long = maxOf(refMm, refMm2); val short = minOf(refMm, refMm2)
+        val w = if (firstLong) long else short
+        val h = if (firstLong) short else long
+        val from = floatArrayOf(ref[0].x, ref[0].y, ref[1].x, ref[1].y, ref[2].x, ref[2].y, ref[3].x, ref[3].y)
+        return Homography.solve(from, floatArrayOf(0f, 0f, w, 0f, w, h, 0f, h))
+    }
+
+    /** Length in millimetres between two photo points, or null until the known object is marked. */
+    private fun lengthMm(a: PointF, b: PointF): Float? {
+        if (refCorners) return surfaceMap()?.distance(a.x, a.y, b.x, b.y)
+        return mmPerPixel()?.let { hypot(b.x - a.x, b.y - a.y) * it }
+    }
+
     /** Millimetres per photo pixel, once the known object is marked. */
     private fun mmPerPixel(): Float? {
         if (ref.size < 2 || refMm <= 0f) return null
@@ -100,11 +129,8 @@ class PhotoMeasureView(context: Context, attrs: AttributeSet?) : View(context, a
     }
 
     fun lengthsMetres(): List<Float> {
-        val scale = mmPerPixel() ?: return emptyList()
-        return (0 until pts.size / 2).map { i ->
-            val a = pts[i * 2]; val b = pts[i * 2 + 1]
-            hypot(b.x - a.x, b.y - a.y) * scale / 1000f
-        }
+        if (ref.size < refNeeded) return emptyList()
+        return (0 until pts.size / 2).mapNotNull { i -> lengthMm(pts[i * 2], pts[i * 2 + 1])?.div(1000f) }
     }
 
     /** The photo as shown on screen with its marks, cropped to the photo. */
@@ -156,7 +182,7 @@ class PhotoMeasureView(context: Context, attrs: AttributeSet?) : View(context, a
                     if (d < best) { best = d; dragList = list; dragIndex = i }
                 }
                 if (dragList == null) {
-                    val list = if (ref.size < 2) ref else pts
+                    val list = if (ref.size < refNeeded) ref else pts
                     list.add(photo(e.x, e.y))
                     dragList = list; dragIndex = list.size - 1
                 }
@@ -194,11 +220,15 @@ class PhotoMeasureView(context: Context, attrs: AttributeSet?) : View(context, a
     }
 
     private fun drawMarks(c: Canvas) {
-        if (ref.size == 2) drawLine(c, screen(ref[0]), screen(ref[1]), mark, "known")
-        val scale = mmPerPixel()
+        if (refCorners) {
+            for (i in 0 until ref.size - 1) drawLine(c, screen(ref[i]), screen(ref[i + 1]), mark, if (i == 0) "known" else "")
+            if (ref.size == 4) drawLine(c, screen(ref[3]), screen(ref[0]), mark, "")
+        } else if (ref.size == 2) drawLine(c, screen(ref[0]), screen(ref[1]), mark, "known")
+        val ready = ref.size >= refNeeded
         for (i in 0 until pts.size / 2) {
             val a = pts[i * 2]; val b = pts[i * 2 + 1]
-            val text = scale?.let { Units.format(hypot(b.x - a.x, b.y - a.y) * it / 1000f, imperial) } ?: "mark the known object first"
+            val mm = if (ready) lengthMm(a, b) else null
+            val text = mm?.let { Units.format(it / 1000f, imperial) } ?: "mark the known object first"
             drawLine(c, screen(a), screen(b), tape, text)
         }
         for (p in ref) drawDot(c, screen(p), mark)
@@ -209,6 +239,7 @@ class PhotoMeasureView(context: Context, attrs: AttributeSet?) : View(context, a
         stroke.color = color
         c.drawLine(a.x, a.y, b.x, b.y, shadow)
         c.drawLine(a.x, a.y, b.x, b.y, stroke)
+        if (text.isEmpty()) return
         val x = (a.x + b.x) / 2f
         val y = (a.y + b.y) / 2f - 22 * dp
         labelBg.color = color

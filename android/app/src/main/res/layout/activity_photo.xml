@@ -26,13 +26,25 @@
 
         <EditText
             android:id="@+id/customMm"
-            android:layout_width="120dp"
+            android:layout_width="110dp"
             android:layout_height="52dp"
             android:layout_marginStart="8dp"
-            android:hint="Length in mm"
+            android:hint="Side in mm"
             android:importantForAutofill="no"
             android:inputType="numberDecimal"
             android:text="100"
+            android:textColor="@color/fg"
+            android:visibility="gone" />
+
+        <EditText
+            android:id="@+id/customMm2"
+            android:layout_width="110dp"
+            android:layout_height="52dp"
+            android:layout_marginStart="6dp"
+            android:hint="Other side, mm"
+            android:importantForAutofill="no"
+            android:inputType="numberDecimal"
+            android:text="50"
             android:textColor="@color/fg"
             android:visibility="gone" />
     </LinearLayout>

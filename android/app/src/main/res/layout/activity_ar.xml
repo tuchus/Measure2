@@ -21,39 +21,85 @@
         android:background="@drawable/fade_top"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:paddingStart="16dp"
-        android:paddingTop="14dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="28dp">
+        android:paddingStart="12dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="24dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/tabMeasure"
+                style="@style/Measure.Button.OverlayToggle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:drawableStart="@drawable/ic_ruler"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:text="Measure" />
+
+            <Button
+                android:id="@+id/tabFloor"
+                style="@style/Measure.Button.OverlayToggle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="5dp"
+                android:layout_marginEnd="5dp"
+                android:drawableStart="@drawable/ic_plan"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:text="Floor plan" />
+
+            <Button
+                android:id="@+id/tabFit"
+                style="@style/Measure.Button.OverlayToggle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:drawableStart="@drawable/ic_box"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:text="Will it fit?" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/readout"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
             android:background="@drawable/pill_readout"
             android:fontFeatureSettings="tnum"
-            android:minWidth="150dp"
             android:gravity="center"
+            android:minWidth="150dp"
             android:paddingStart="18dp"
-            android:paddingTop="6dp"
+            android:paddingTop="4dp"
             android:paddingEnd="18dp"
-            android:paddingBottom="6dp"
+            android:paddingBottom="4dp"
             android:text="—"
             android:textColor="@color/ink"
-            android:textSize="40sp"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMinTextSize="20sp"
+            android:autoSizeMaxTextSize="38sp"
+            android:maxLines="1"
+            android:textSize="38sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/hint"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="8dp"
             android:gravity="center"
             android:shadowColor="#FF000000"
             android:shadowRadius="4"
             android:text="Starting the camera…"
             android:textColor="@android:color/white"
-            android:textSize="17sp" />
+            android:textSize="16sp" />
     </LinearLayout>
 
     <LinearLayout
@@ -63,9 +109,9 @@
         android:background="@drawable/fade_bottom"
         android:orientation="vertical"
         android:paddingStart="12dp"
-        android:paddingTop="32dp"
+        android:paddingTop="28dp"
         android:paddingEnd="12dp"
-        android:paddingBottom="16dp">
+        android:paddingBottom="14dp">
 
         <TextView
             android:id="@+id/total"
@@ -85,10 +131,10 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:drawableStart="@drawable/ic_shape"
-            android:text="Close the shape and show its area"
             android:visibility="gone" />
 
         <LinearLayout
+            android:id="@+id/measurePanel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
@@ -114,9 +160,144 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/fitPanel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/s_overlay"
+            android:orientation="vertical"
+            android:padding="10dp"
+            android:visibility="gone">
+
+            <Spinner
+                android:id="@+id/fitPreset"
+                android:layout_width="match_parent"
+                android:layout_height="48dp" />
+
+            <TextView
+                android:id="@+id/fitUnits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sizes in centimetres"
+                android:textColor="@color/ink"
+                android:textSize="13sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <EditText
+                    android:id="@+id/fitW"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="Width"
+                    android:importantForAutofill="no"
+                    android:inputType="numberDecimal"
+                    android:selectAllOnFocus="true"
+                    android:textColor="@color/ink"
+                    android:textColorHint="#991C1B18" />
+
+                <EditText
+                    android:id="@+id/fitD"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="Depth"
+                    android:importantForAutofill="no"
+                    android:inputType="numberDecimal"
+                    android:selectAllOnFocus="true"
+                    android:textColor="@color/ink"
+                    android:textColorHint="#991C1B18" />
+
+                <EditText
+                    android:id="@+id/fitH"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="Height"
+                    android:importantForAutofill="no"
+                    android:inputType="numberDecimal"
+                    android:selectAllOnFocus="true"
+                    android:textColor="@color/ink"
+                    android:textColorHint="#991C1B18" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Width"
+                    android:textColor="@color/ink"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Depth"
+                    android:textColor="@color/ink"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Height"
+                    android:textColor="@color/ink"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/turnLeft"
+                    style="@style/Measure.Button"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:drawableStart="@drawable/ic_turn_left"
+                    android:minHeight="48dp"
+                    android:text="Turn" />
+
+                <Button
+                    android:id="@+id/turnRight"
+                    style="@style/Measure.Button"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:layout_marginEnd="6dp"
+                    android:drawableStart="@drawable/ic_turn_right"
+                    android:minHeight="48dp"
+                    android:text="Turn" />
+
+                <Button
+                    android:id="@+id/removeBox"
+                    style="@style/Measure.Button"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:drawableStart="@drawable/ic_clear"
+                    android:minHeight="48dp"
+                    android:text="Remove" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -131,8 +312,8 @@
 
             <Button
                 android:id="@+id/add"
-                android:layout_width="88dp"
-                android:layout_height="88dp"
+                android:layout_width="84dp"
+                android:layout_height="84dp"
                 android:layout_marginStart="14dp"
                 android:layout_marginEnd="14dp"
                 android:background="@drawable/bg_add"
@@ -141,7 +322,7 @@
                 android:stateListAnimator="@null"
                 android:text="+"
                 android:textColor="@color/ink"
-                android:textSize="44sp" />
+                android:textSize="42sp" />
 
             <Button
                 android:id="@+id/clear"
@@ -156,7 +337,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="10dp"
             android:orientation="horizontal">
 
             <Button

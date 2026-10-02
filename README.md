@@ -9,7 +9,7 @@ Open `index.html` over https in Chrome on the phone (GitHub Pages works: https:/
 
 ## Android app
 
-`android/` holds a native app with the same two ways of measuring, using Google's ARCore. GitHub builds it on every push to `main`.
+`android/` holds a native app using Google's ARCore: room measuring with shapes, areas, angles and a magnifier; floor plans; a "Will it fit?" box for furniture; photo measuring that corrects for angled photos; a spirit level; and saving and sharing. GitHub builds it on every push to `main`.
 
 Get it on the phone: https://github.com/tuchus/Measure2/releases/latest/download/Measure.apk
 

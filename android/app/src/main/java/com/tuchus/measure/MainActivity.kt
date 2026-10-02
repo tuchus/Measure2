@@ -27,6 +27,8 @@ class MainActivity : Activity() {
         metric.setOnClickListener { Units.setImperial(this, false); showUnits() }
         imperial.setOnClickListener { Units.setImperial(this, true); showUnits() }
         room.setOnClickListener { startActivity(Intent(this, ArMeasureActivity::class.java)) }
+        findViewById<Button>(R.id.floorButton).setOnClickListener { openRoom(ArMeasureActivity.Mode.FLOOR) }
+        findViewById<Button>(R.id.fitButton).setOnClickListener { openRoom(ArMeasureActivity.Mode.FIT) }
         findViewById<Button>(R.id.photoButton).setOnClickListener {
             startActivity(Intent(this, PhotoActivity::class.java))
         }
@@ -49,6 +51,10 @@ class MainActivity : Activity() {
         handler.removeCallbacksAndMessages(null)
     }
 
+    private fun openRoom(mode: ArMeasureActivity.Mode) {
+        startActivity(Intent(this, ArMeasureActivity::class.java).putExtra(ArMeasureActivity.EXTRA_MODE, mode.name))
+    }
+
     private fun showUnits() {
         val imp = Units.isImperial(this)
         metric.isSelected = !imp
@@ -62,6 +68,8 @@ class MainActivity : Activity() {
             return
         }
         room.isEnabled = a != ArCoreApk.Availability.UNSUPPORTED_DEVICE_NOT_CAPABLE
+        findViewById<Button>(R.id.floorButton).isEnabled = room.isEnabled
+        findViewById<Button>(R.id.fitButton).isEnabled = room.isEnabled
         status.text = when (a) {
             ArCoreApk.Availability.SUPPORTED_INSTALLED -> "Your phone is ready for room measuring."
             ArCoreApk.Availability.SUPPORTED_NOT_INSTALLED,

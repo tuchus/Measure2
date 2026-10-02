@@ -78,7 +78,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="Uses the camera and motion sensors. Works best on textured, well-lit surfaces. Expect about 1 cm of error over a metre." />
+            android:text="Uses the camera and motion sensors. Works best on textured, well-lit surfaces. Expect about 1 cm of error over a metre. Floor plan: tap each corner of a room. Will it fit: see a box the size of a sofa, fridge or bed standing in the room." />
 
         <Button
             android:id="@+id/roomButton"
@@ -88,6 +88,35 @@
             android:layout_marginTop="12dp"
             android:drawableStart="@drawable/ic_room"
             android:text="Measure in the room" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/floorButton"
+                style="@style/Measure.Button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:minHeight="64dp"
+                android:drawableStart="@drawable/ic_plan"
+                android:text="Floor plan" />
+
+            <Button
+                android:id="@+id/fitButton"
+                style="@style/Measure.Button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:minHeight="64dp"
+                android:drawableStart="@drawable/ic_box"
+                android:text="Will it fit?" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/arStatus"
@@ -110,7 +139,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="Put something of known size, like a bank card, flat next to what you want to measure. Shoot straight on." />
+            android:text="Put something of known size, like a bank card, flat next to what you want to measure. Mark its four corners and the photo can be taken at an angle." />
 
         <Button
             android:id="@+id/photoButton"

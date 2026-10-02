@@ -18,6 +18,8 @@ class BackgroundRenderer {
 
     private val quad: FloatBuffer = floatBuffer(floatArrayOf(-1f, -1f, 1f, -1f, -1f, 1f, 1f, 1f))
     private val texCoords: FloatBuffer = floatBuffer(FloatArray(8))
+    private val corners = FloatArray(8)          // texture coords at bottom-left, bottom-right, top-left, top-right
+    private val zoomCoords: FloatBuffer = floatBuffer(FloatArray(8))
 
     fun create() {
         val tex = IntArray(1)
@@ -45,6 +47,8 @@ class BackgroundRenderer {
                 Coordinates2d.OPENGL_NORMALIZED_DEVICE_COORDINATES, quad,
                 Coordinates2d.TEXTURE_NORMALIZED, texCoords
             )
+            texCoords.position(0)
+            texCoords.get(corners)
         }
         if (frame.timestamp == 0L) return
         quad.position(0); texCoords.position(0)
@@ -62,6 +66,41 @@ class BackgroundRenderer {
         GLES20.glDisableVertexAttribArray(positionAttr)
         GLES20.glDisableVertexAttribArray(texCoordAttr)
         GLES20.glDepthMask(true)
+    }
+
+    /**
+     * Draws a zoomed-in square of the camera image into a square of the screen.
+     * [x], [y], [size] are in GL pixels (y from the bottom); the region shown is centred on the screen.
+     */
+    fun drawZoomed(x: Int, y: Int, size: Int, zoom: Float, screenW: Int, screenH: Int) {
+        if (screenW <= 0 || screenH <= 0) return
+        val hu = size / zoom / 2f / screenW
+        val hv = size / zoom / 2f / screenH
+        val region = floatArrayOf(0.5f - hu, 0.5f - hv, 0.5f + hu, 0.5f - hv, 0.5f - hu, 0.5f + hv, 0.5f + hu, 0.5f + hv)
+        zoomCoords.position(0)
+        for (i in 0 until 4) {
+            val u = region[i * 2]; val v = region[i * 2 + 1]
+            for (k in 0..1) {
+                zoomCoords.put(
+                    corners[k] * (1 - u) * (1 - v) + corners[2 + k] * u * (1 - v) +
+                        corners[4 + k] * (1 - u) * v + corners[6 + k] * u * v
+                )
+            }
+        }
+        zoomCoords.position(0); quad.position(0)
+        GLES20.glViewport(x, y, size, size)
+        GLES20.glDisable(GLES20.GL_DEPTH_TEST)
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId)
+        GLES20.glUseProgram(program)
+        GLES20.glVertexAttribPointer(positionAttr, 2, GLES20.GL_FLOAT, false, 0, quad)
+        GLES20.glVertexAttribPointer(texCoordAttr, 2, GLES20.GL_FLOAT, false, 0, zoomCoords)
+        GLES20.glEnableVertexAttribArray(positionAttr)
+        GLES20.glEnableVertexAttribArray(texCoordAttr)
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+        GLES20.glDisableVertexAttribArray(positionAttr)
+        GLES20.glDisableVertexAttribArray(texCoordAttr)
+        GLES20.glViewport(0, 0, screenW, screenH)
     }
 
     private fun shader(type: Int, src: String): Int {
