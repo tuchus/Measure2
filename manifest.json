@@ -1,0 +1,11 @@
+{
+  "name": "Pocket Tape Measure",
+  "short_name": "Measure",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#161613",
+  "theme_color": "#f5c518",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
