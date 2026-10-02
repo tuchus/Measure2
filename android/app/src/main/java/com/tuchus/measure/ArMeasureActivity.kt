@@ -117,6 +117,9 @@ class ArMeasureActivity : Activity(), GLSurfaceView.Renderer {
     private val proj = FloatArray(16)
     private val camPos = FloatArray(3)
     private var shown = ""
+    private var lastAim: FloatArray? = null
+    private var lastAimTime = 0L
+    private var isScanned = false
 
     private val dp by lazy { resources.displayMetrics.density }
 
@@ -169,8 +172,8 @@ class ArMeasureActivity : Activity(), GLSurfaceView.Renderer {
         surface.setRenderer(this)
         surface.renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
 
-        // Tapping anywhere on the camera view does the same as the + button.
-        // In "Will it fit?" a drag moves the box instead.
+        // Only the + button drops points: thumbs resting on the screen must not add any.
+        // In "Will it fit?" a drag moves the box.
         overlay.setOnTouchListener(object : View.OnTouchListener {
             var downX = 0f; var downY = 0f; var dragging = false
             override fun onTouch(v: View, e: MotionEvent): Boolean {
@@ -184,7 +187,7 @@ class ArMeasureActivity : Activity(), GLSurfaceView.Renderer {
                         }
                     }
                     MotionEvent.ACTION_UP -> {
-                        if (dragging) surface.queueEvent { dragEnded = true } else { v.performClick(); requestPoint() }
+                        if (dragging) surface.queueEvent { dragEnded = true } else v.performClick()
                     }
                 }
                 return true
@@ -439,6 +442,13 @@ class ArMeasureActivity : Activity(), GLSurfaceView.Renderer {
         val pose = camera.pose
         camPos[0] = pose.tx(); camPos[1] = pose.ty(); camPos[2] = pose.tz()
 
+        if (!isScanned) isScanned = scanned(s)
+        if (!isScanned) {
+            placeRequested = false
+            publish(null, "Scanning. Move the phone slowly side to side, pointing at the floor or a table.")
+            return
+        }
+
         if (mode == Mode.FIT) {
             updateBox(s, frame)
             publish(null, null)
@@ -458,6 +468,10 @@ class ArMeasureActivity : Activity(), GLSurfaceView.Renderer {
             publish(target, null)
         }
 
+        drawLoupe()
+    }
+
+    private fun drawLoupe() {
         // The magnifier shows the camera image around the circle, three times bigger
         val loupe = loupeRect()
         background.drawZoomed(
@@ -473,7 +487,7 @@ class ArMeasureActivity : Activity(), GLSurfaceView.Renderer {
         val points = positions()
 
         // An existing point near the circle wins, so lines can share ends and shapes can close
-        var best = 30 * dp
+        var best = 20 * dp
         var snap = -1
         for ((i, p) in points.withIndex()) {
             val sp = screenOf(p) ?: continue
@@ -482,8 +496,8 @@ class ArMeasureActivity : Activity(), GLSurfaceView.Renderer {
         }
         if (snap >= 0) return Target(points[snap], null, snap, Guide.NONE)
 
-        val hit = findHit(frame, cx, cy) ?: return null
-        val pos = floatArrayOf(hit.hitPose.tx(), hit.hitPose.ty(), hit.hitPose.tz())
+        val hit = findHit(frame, cx, cy)
+        val pos = steady(hit?.let { floatArrayOf(it.hitPose.tx(), it.hitPose.ty(), it.hitPose.tz()) }) ?: return null
 
         if (mode == Mode.FLOOR) {
             // Floor corners all sit at the height of the first corner
@@ -530,19 +544,44 @@ class ArMeasureActivity : Activity(), GLSurfaceView.Renderer {
         return floatArrayOf((clip[0] / clip[3] + 1f) / 2f * viewWidth, (1f - clip[1] / clip[3]) / 2f * viewHeight)
     }
 
-    /** The surface at a screen position, nearest first. */
+    /**
+     * The surface at a screen position. Flat surfaces ARCore has locked onto win over everything else,
+     * because points on them stay put; depth guesses are used only when there is no flat surface.
+     */
     private fun findHit(frame: Frame, x: Float, y: Float, floorOnly: Boolean = false): HitResult? {
+        var fallback: HitResult? = null
         for (h in frame.hitTest(x, y)) {
             when (val t = h.trackable) {
                 is Plane -> if (t.trackingState == TrackingState.TRACKING && t.subsumedBy == null &&
                     t.isPoseInPolygon(h.hitPose) &&
                     (!floorOnly || t.type == Plane.Type.HORIZONTAL_UPWARD_FACING)
                 ) return h
-                is DepthPoint -> if (!floorOnly) return h
-                is Point -> if (!floorOnly && t.orientationMode == Point.OrientationMode.ESTIMATED_SURFACE_NORMAL) return h
+                is DepthPoint -> if (!floorOnly && fallback == null) fallback = h
+                is Point -> if (!floorOnly && fallback == null &&
+                    t.orientationMode == Point.OrientationMode.ESTIMATED_SURFACE_NORMAL
+                ) fallback = h
             }
         }
-        return null
+        return fallback
+    }
+
+    /** True once ARCore has found at least one flat surface; before that, points drift. */
+    private fun scanned(s: Session): Boolean =
+        s.getAllTrackables(Plane::class.java).any { it.trackingState == TrackingState.TRACKING && it.subsumedBy == null }
+
+    /** Steadies the aiming position so the circle doesn't jitter, but follows real moves at once. */
+    private fun steady(raw: FloatArray?): FloatArray? {
+        val now = System.nanoTime()
+        if (raw == null) {
+            // Keep the last position briefly so the circle doesn't flicker off for a frame or two
+            return if (now - lastAimTime < 300_000_000L) lastAim?.clone() else null
+        }
+        val prev = lastAim
+        val out = if (prev == null || Units.distance(prev, raw) > 0.08f) raw.clone()
+        else FloatArray(3) { prev[it] + (raw[it] - prev[it]) * 0.35f }
+        lastAim = out
+        lastAimTime = now
+        return out.clone()
     }
 
     private fun positions(): List<FloatArray> = anchors.map { val p = it.pose; floatArrayOf(p.tx(), p.ty(), p.tz()) }
@@ -553,8 +592,12 @@ class ArMeasureActivity : Activity(), GLSurfaceView.Renderer {
         var newAnchor = false
         val index = if (t.snapIndex >= 0) t.snapIndex else {
             val exact = t.guide == Guide.NONE && (mode != Mode.FLOOR || path.isEmpty())
-            val fromHit = if (exact && t.hit != null) {
-                try { t.hit.createAnchor() } catch (e: Exception) { null }
+            val onPlane = t.hit?.trackable is Plane
+            val fromHit = if (exact && onPlane && t.hit != null) {
+                // Attached to the plane so it moves with it, at the steadied spot the circle showed
+                try {
+                    t.hit.trackable.createAnchor(Pose.makeTranslation(t.pos[0], t.pos[1], t.pos[2]))
+                } catch (e: Exception) { null }
             } else null
             val anchor = fromHit ?: try {
                 s.createAnchor(Pose.makeTranslation(t.pos[0], t.pos[1], t.pos[2]))
