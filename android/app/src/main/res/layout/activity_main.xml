@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <ImageView
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:background="@drawable/pill_readout"
+            android:src="@drawable/ic_launcher_foreground"
+            android:scaleType="centerCrop"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="Measure"
+            android:textColor="@color/fg"
+            android:textSize="38sp"
+            android:textStyle="bold" />
+
+        <TextView
+            style="@style/Measure.Body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Point the camera at a surface, drop a point, move, drop another. Or measure from a photo with something of known size in it." />
+
+        <TextView
+            style="@style/Measure.Heading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="Units" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/unitsMetric"
+                style="@style/Measure.Button.Toggle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:text="Centimetres and metres" />
+
+            <Button
+                android:id="@+id/unitsImperial"
+                style="@style/Measure.Button.Toggle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:text="Inches and feet" />
+        </LinearLayout>
+
+        <TextView
+            style="@style/Measure.Heading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="In the room" />
+
+        <TextView
+            style="@style/Measure.Body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Uses the camera and motion sensors. Works best on textured, well-lit surfaces. Expect about 1 cm of error over a metre." />
+
+        <Button
+            android:id="@+id/roomButton"
+            style="@style/Measure.Button.Big"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:drawableStart="@drawable/ic_room"
+            android:text="Measure in the room" />
+
+        <TextView
+            android:id="@+id/arStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Checking your phone…"
+            android:textColor="@color/muted"
+            android:textSize="14sp" />
+
+        <TextView
+            style="@style/Measure.Heading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="From a photo" />
+
+        <TextView
+            style="@style/Measure.Body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Put something of known size, like a bank card, flat next to what you want to measure. Shoot straight on." />
+
+        <Button
+            android:id="@+id/photoButton"
+            style="@style/Measure.Button.Big"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:drawableStart="@drawable/ic_camera"
+            android:text="Measure from a photo" />
+    </LinearLayout>
+</ScrollView>

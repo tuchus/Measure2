@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#F3F2EE</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="fg">#1C1B18</color>
+    <color name="muted">#6B675D</color>
+    <color name="line">#D9D6CC</color>
+    <color name="tape">#F5C518</color>
+    <color name="ink">#1C1B18</color>
+    <color name="mark">#E0342B</color>
+    <color name="overlay_button">#EBFFFFFF</color>
+</resources>

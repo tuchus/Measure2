@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Known object in the photo"
+        android:textColor="@color/muted"
+        android:textSize="14sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <Spinner
+            android:id="@+id/refType"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1" />
+
+        <EditText
+            android:id="@+id/customMm"
+            android:layout_width="120dp"
+            android:layout_height="52dp"
+            android:layout_marginStart="8dp"
+            android:hint="Length in mm"
+            android:importantForAutofill="no"
+            android:inputType="numberDecimal"
+            android:text="100"
+            android:textColor="@color/fg"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/takePhoto"
+            style="@style/Measure.Button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="5dp"
+            android:drawableStart="@drawable/ic_camera"
+            android:text="Take photo" />
+
+        <Button
+            android:id="@+id/choosePhoto"
+            style="@style/Measure.Button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="5dp"
+            android:drawableStart="@drawable/ic_photo"
+            android:text="Choose photo" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/step"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:textColor="@color/fg"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <com.tuchus.measure.PhotoMeasureView
+        android:id="@+id/measure"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:layout_weight="1" />
+
+    <TextView
+        android:id="@+id/results"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:fontFeatureSettings="tnum"
+        android:maxLines="4"
+        android:scrollbars="vertical"
+        android:textColor="@color/fg"
+        android:textSize="16sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/photoUndo"
+            style="@style/Measure.Button.Plain"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:drawableStart="@drawable/ic_undo"
+            android:text="Undo" />
+
+        <Button
+            android:id="@+id/remark"
+            style="@style/Measure.Button.Plain"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.3"
+            android:layout_marginStart="6dp"
+            android:layout_marginEnd="6dp"
+            android:drawableStart="@drawable/ic_known"
+            android:text="Re-mark object" />
+
+        <Button
+            android:id="@+id/photoClear"
+            style="@style/Measure.Button.Plain"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:drawableStart="@drawable/ic_clear"
+            android:text="Clear" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/photoUnits"
+        style="@style/Measure.Button.Plain"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:drawableStart="@drawable/ic_ruler"
+        android:text="Units: cm" />
+</LinearLayout>
